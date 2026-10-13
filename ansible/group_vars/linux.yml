@@ -1,0 +1,17 @@
+---
+# Variables pour les hôtes Linux (SIEM01, SRV01, ATTACK01).
+
+# Paquets de base installés par le rôle common.
+common_base_packages:
+  - curl
+  - wget
+  - vim
+  - net-tools
+  - jq
+
+# En profil léger, ATTACK01 est absente : on installe les outils de scénario
+# sur SIEM01 pour pouvoir lancer les attaques depuis le SIEM.
+# (le rôle common lit lab_profile fourni par Vagrant)
+scenario_tools:
+  - nmap
+  - hydra

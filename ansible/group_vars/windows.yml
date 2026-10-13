@@ -1,0 +1,15 @@
+---
+# Paramètres de connexion WinRM pour les VM Windows.
+# Vagrant fournit l'hôte/port du canal de contrôle ; on fixe ici le reste.
+
+ansible_connection: winrm
+ansible_user: vagrant
+ansible_password: vagrant
+ansible_winrm_transport: ntlm
+ansible_winrm_server_cert_validation: ignore
+ansible_winrm_operation_timeout_sec: 120
+ansible_winrm_read_timeout_sec: 150
+ansible_port: 5985
+
+# Version de Sysmon et configuration utilisée (voir detection/sysmon/).
+sysmon_config: "sysmonconfig.xml"

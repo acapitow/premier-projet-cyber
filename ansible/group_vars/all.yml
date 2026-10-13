@@ -1,0 +1,25 @@
+---
+# Variables communes à toutes les machines du labo.
+
+# --- Domaine Active Directory ---
+lab_domain:        "lab.local"
+lab_domain_netbios: "LAB"
+lab_ou_base:       "OU=LAB,DC=lab,DC=local"
+
+# --- Réseau ---
+# (également passées par Vagrant via extra_vars)
+lab_subnet: "10.20.0.0/24"
+siem_ip:    "10.20.0.40"
+dc_ip:      "10.20.0.10"
+
+# --- Wazuh ---
+wazuh_version:       "4.9"
+wazuh_manager_ip:    "{{ siem_ip }}"
+wazuh_registration_port: 1515
+wazuh_reporting_port:    1514
+
+# Les mots de passe réels proviennent de vault.yml (copie de vault.yml.example).
+# On fournit des valeurs par défaut FICTIVES pour que le labo tourne même sans vault.
+vault_defaults:
+  domain_admin_password: "Lab-Admin-2026!"
+  srv01_labadmin_password: "Spring2026!"

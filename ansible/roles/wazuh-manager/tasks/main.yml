@@ -1,0 +1,77 @@
+---
+# =============================================================================
+# Rôle wazuh-manager — installe Wazuh "all-in-one" sur SIEM01 (manager + indexer
+# + dashboard) via l'assistant officiel, puis déploie nos règles/décodeurs.
+# Réf. : wazuh/wazuh-ansible & doc officielle d'installation.
+# =============================================================================
+
+- name: "Vérifier si Wazuh manager est déjà installé"
+  ansible.builtin.stat:
+    path: /var/ossec/bin/wazuh-control
+  register: wazuh_installed
+
+# --- Installation all-in-one (idempotente grâce au stat ci-dessus) ----------
+- name: "Télécharger l'assistant d'installation Wazuh {{ wazuh_version }}"
+  ansible.builtin.get_url:
+    url: "https://packages.wazuh.com/{{ wazuh_version }}/wazuh-install.sh"
+    dest: /root/wazuh-install.sh
+    mode: "0750"
+  when: not wazuh_installed.stat.exists
+
+- name: "Lancer l'installation all-in-one (indexer + manager + dashboard)"
+  ansible.builtin.command: bash /root/wazuh-install.sh -a --ignore-check
+  args:
+    creates: /var/ossec/bin/wazuh-control
+  register: wazuh_install_run
+  when: not wazuh_installed.stat.exists
+  # ⚠️ Étape longue (plusieurs minutes) : indexer OpenSearch + dashboard.
+
+- name: "Récupérer le mot de passe admin du dashboard"
+  ansible.builtin.shell: |
+    set -o pipefail
+    tar -axf /root/wazuh-install-files.tar -O wazuh-install-files/wazuh-passwords.txt \
+      | grep -A1 "username: 'admin'" | grep password | awk -F"'" '{print $2}'
+  args:
+    executable: /bin/bash
+  register: wazuh_admin_pw
+  changed_when: false
+  failed_when: false
+
+- name: "Écrire les identifiants du dashboard dans /root/wazuh-dashboard-creds.txt"
+  ansible.builtin.copy:
+    dest: /root/wazuh-dashboard-creds.txt
+    mode: "0600"
+    content: |
+      Dashboard Wazuh : https://{{ siem_ip }}
+      Utilisateur : admin
+      Mot de passe : {{ wazuh_admin_pw.stdout | default('(voir /root/wazuh-install-files.tar)') }}
+  when: wazuh_admin_pw is defined
+
+# --- Déploiement de NOS règles & décodeurs personnalisés --------------------
+- name: "Déployer les décodeurs personnalisés"
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../detection/wazuh/local_decoder.xml"
+    dest: /var/ossec/etc/decoders/local_decoder.xml
+    owner: wazuh
+    group: wazuh
+    mode: "0660"
+  notify: Redémarrer wazuh-manager
+
+- name: "Déployer les règles personnalisées (scénarios 01/02/03)"
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../detection/wazuh/local_rules.xml"
+    dest: /var/ossec/etc/rules/local_rules.xml
+    owner: wazuh
+    group: wazuh
+    mode: "0660"
+  notify: Redémarrer wazuh-manager
+
+- name: "S'assurer que le manager est démarré"
+  ansible.builtin.service:
+    name: wazuh-manager
+    state: started
+    enabled: true
+
+- name: "Afficher où trouver les identifiants du dashboard"
+  ansible.builtin.debug:
+    msg: "Dashboard: https://{{ siem_ip }} — identifiants dans /root/wazuh-dashboard-creds.txt"

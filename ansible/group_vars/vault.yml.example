@@ -1,0 +1,29 @@
+---
+# =============================================================================
+# EXEMPLE de coffre de secrets — À COPIER en `vault.yml` puis adapter.
+#   cp ansible/group_vars/vault.yml.example ansible/group_vars/vault.yml
+# Optionnel : chiffrer avec `ansible-vault encrypt ansible/group_vars/vault.yml`
+#
+# ⚠️ Mots de passe VOLONTAIREMENT FAIBLES et FICTIFS : environnement jetable,
+#    isolé, sans accès Internet. NE JAMAIS réutiliser ailleurs.
+#    vault.yml est ignoré par git (.gitignore).
+# =============================================================================
+
+# --- Active Directory (DC01) ---
+vault_domain_admin_password: "Lab-Admin-2026!"
+vault_safe_mode_password:    "Lab-DSRM-2026!"   # mode restauration AD (DSRM)
+
+# --- Utilisateurs de domaine fictifs (cibles du password spraying) ---
+# Mot de passe "fort" pour la plupart, et UN compte volontairement faible
+# (jdupont) pour que le scénario 02 aboutisse de façon pédagogique.
+vault_domain_users:
+  - { sam: "jdupont",    name: "Jean Dupont",    password: "Printemps2026!", ou: "Users",    groups: ["Comptabilite"] }
+  - { sam: "amartin",    name: "Alice Martin",   password: "C0mpt@-9f3Xz!",  ou: "Users",    groups: ["Comptabilite"] }
+  - { sam: "pbernard",   name: "Paul Bernard",   password: "RH-7h2Qw!kLa",   ou: "Users",    groups: ["RH"] }
+  - { sam: "svc_backup", name: "Service Backup", password: "Svc!Bkp-2026#",  ou: "Services", groups: ["Services"] }
+  - { sam: "svc_sql",    name: "Service SQL",    password: "Sql!Srv-2026#",  ou: "Services", groups: ["Services"] }
+
+# --- SRV01 (cible SSH brute force) ---
+# Compte local dont le mot de passe FAIBLE est "deviné" par le scénario 01.
+vault_srv01_user:     "labadmin"
+vault_srv01_password: "Spring2026!"

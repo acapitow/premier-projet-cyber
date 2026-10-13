@@ -1,0 +1,14 @@
+---
+# Collections Ansible nécessaires au labo.
+# Installation : ansible-galaxy collection install -r ansible/requirements.yml
+collections:
+  - name: ansible.windows        # win_feature, win_powershell, win_regedit, win_service…
+    version: ">=2.0.0"
+  - name: community.windows      # win_domain_membership, win_chocolatey…
+    version: ">=2.0.0"
+  - name: microsoft.ad           # domain / domain_controller / user / group / ou
+    version: ">=1.5.0"
+  - name: community.general      # divers modules Linux
+    version: ">=8.0.0"
+  - name: ansible.posix          # sysctl, authorized_key, firewalld…
+    version: ">=1.5.0"

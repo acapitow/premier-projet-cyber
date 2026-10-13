@@ -1,0 +1,57 @@
+---
+# Rôle srv01-linux — cible Linux : SSH (durci mais "cassable" pour le labo) + Nginx.
+# Fournit la surface des scénarios 01 (SSH brute force) et 03 (Nmap).
+
+- name: "Installer OpenSSH et Nginx"
+  ansible.builtin.apt:
+    name:
+      - openssh-server
+      - nginx
+    state: present
+    update_cache: true
+
+# --- Compte cible du scénario 01 (SSH brute force) --------------------------
+- name: "Créer le compte local cible (labadmin)"
+  ansible.builtin.user:
+    name: "{{ vault_srv01_user | default('labadmin') }}"
+    shell: /bin/bash
+    create_home: true
+    password: "{{ (vault_srv01_password | default('Spring2026!')) | password_hash('sha512') }}"
+  no_log: true   # ne pas afficher le mot de passe dans les logs Ansible
+
+# --- Configuration SSH ------------------------------------------------------
+# On autorise l'auth par mot de passe (nécessaire au scénario brute force) tout
+# en gardant une config propre et journalisée (LogLevel VERBOSE => détections fines).
+- name: "Déployer la configuration SSH du labo"
+  ansible.builtin.template:
+    src: sshd_lab.conf.j2
+    dest: /etc/ssh/sshd_config.d/00-lab.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Redémarrer SSH
+
+# --- Nginx : page d'accueil du labo -----------------------------------------
+- name: "Déployer la page d'accueil Nginx"
+  ansible.builtin.copy:
+    dest: /var/www/html/index.html
+    mode: "0644"
+    content: |
+      <!doctype html><html lang="fr"><head><meta charset="utf-8">
+      <title>SRV01 — SOC Home Lab</title></head>
+      <body style="font-family:sans-serif">
+      <h1>SRV01 · SOC Home Lab</h1>
+      <p>Serveur de test (Nginx). Cible des scénarios Nmap / brute force SSH.</p>
+      </body></html>
+
+- name: "Activer et démarrer Nginx"
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true
+
+- name: "Activer et démarrer SSH"
+  ansible.builtin.service:
+    name: ssh
+    state: started
+    enabled: true

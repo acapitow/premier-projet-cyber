@@ -1,0 +1,5 @@
+---
+- name: Redémarrer l'agent Windows
+  ansible.windows.win_service:
+    name: WazuhSvc
+    state: restarted

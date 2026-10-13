@@ -1,0 +1,50 @@
+---
+# =============================================================================
+# site.yml — playbook maître du SOC Home Lab
+#
+# Vagrant lance ce playbook par VM (avec --limit <vm>), donc à chaque `vagrant up`
+# d'une machine, seule la play correspondant à son groupe s'exécute.
+#
+# Ordre logique de bout en bout :
+#   1. SIEM01 (manager Wazuh)  2. SRV01  3. DC01  4. WS01  5. ATTACK01
+# =============================================================================
+
+# --- SIEM : manager + indexer + dashboard Wazuh ------------------------------
+- name: "SIEM01 — Wazuh all-in-one"
+  hosts: siem
+  become: true
+  roles:
+    - role: common
+    - role: wazuh-manager
+
+# --- SRV01 : cible Linux (SSH + Nginx) + agent Wazuh -------------------------
+- name: "SRV01 — Serveur Linux (SSH, Nginx)"
+  hosts: srv
+  become: true
+  roles:
+    - role: common
+    - role: srv01-linux
+    - role: wazuh-agent
+
+# --- DC01 : contrôleur de domaine Active Directory + agent Wazuh -------------
+- name: "DC01 — Contrôleur de domaine Active Directory"
+  hosts: dc
+  gather_facts: true
+  roles:
+    - role: dc01-domain-controller
+    - role: wazuh-agent
+
+# --- WS01 : poste joint au domaine, Sysmon, PS logging + agent Wazuh ---------
+- name: "WS01 — Poste de travail (Sysmon, PowerShell logging)"
+  hosts: ws
+  gather_facts: true
+  roles:
+    - role: ws01-workstation
+    - role: wazuh-agent
+
+# --- ATTACK01 : Kali + outils de scénario (labo uniquement) ------------------
+- name: "ATTACK01 — Machine d'attaque (labo)"
+  hosts: attacker
+  become: true
+  roles:
+    - role: common

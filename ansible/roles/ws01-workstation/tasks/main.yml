@@ -1,0 +1,98 @@
+---
+# =============================================================================
+# Rôle ws01-workstation
+# Poste Windows joint au domaine lab.local, avec Sysmon (config reconnue) et
+# journalisation PowerShell (Script Block Logging + Module Logging).
+# Collections : ansible.windows, community.windows, microsoft.ad
+# =============================================================================
+
+# --- 1. Nommage + DNS vers le DC --------------------------------------------
+- name: "Renommer l'ordinateur en WS01"
+  ansible.windows.win_hostname:
+    name: WS01
+  register: rename_ws
+
+- name: "Redémarrer après renommage si nécessaire"
+  ansible.windows.win_reboot:
+  when: rename_ws.reboot_required
+
+- name: "Pointer le DNS client vers le DC ({{ dc_ip }})"
+  ansible.windows.win_dns_client:
+    adapter_names: "*"
+    dns_servers:
+      - "{{ dc_ip }}"
+
+# --- 2. Journalisation PowerShell (avant la jonction, indépendant) ----------
+# Script Block Logging => Event ID 4104 (Microsoft-Windows-PowerShell/Operational)
+- name: "Activer PowerShell Script Block Logging (EID 4104)"
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging
+    name: EnableScriptBlockLogging
+    data: 1
+    type: dword
+
+- name: "Activer PowerShell Module Logging"
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ModuleLogging
+    name: EnableModuleLogging
+    data: 1
+    type: dword
+
+- name: "Module Logging : journaliser tous les modules (*)"
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ModuleLogging\ModuleNames
+    name: "*"
+    data: "*"
+    type: string
+
+# --- 3. Sysmon ---------------------------------------------------------------
+- name: "Créer le dossier d'installation C:\\lab"
+  ansible.windows.win_file:
+    path: 'C:\\lab'
+    state: directory
+
+- name: "Télécharger Sysmon (Sysinternals)"
+  ansible.windows.win_get_url:
+    url: https://download.sysinternals.com/files/Sysmon.zip
+    dest: 'C:\\lab\\Sysmon.zip'
+
+- name: "Décompresser Sysmon"
+  community.windows.win_unzip:
+    src: 'C:\\lab\\Sysmon.zip'
+    dest: 'C:\\lab\\sysmon'
+    creates: 'C:\\lab\\sysmon\\Sysmon64.exe'
+
+# Notre configuration Sysmon (inspirée de SwiftOnSecurity) vit dans le dépôt.
+- name: "Copier la configuration Sysmon du labo"
+  ansible.windows.win_copy:
+    src: "{{ playbook_dir }}/../detection/sysmon/sysmonconfig.xml"
+    dest: 'C:\\lab\\sysmon\\sysmonconfig.xml'
+
+- name: "Vérifier si le service Sysmon existe déjà"
+  ansible.windows.win_service_info:
+    name: Sysmon64
+  register: sysmon_svc
+  failed_when: false
+
+- name: "Installer Sysmon avec la configuration du labo"
+  ansible.windows.win_command: >-
+    C:\\lab\\sysmon\\Sysmon64.exe -accepteula -i C:\\lab\\sysmon\\sysmonconfig.xml
+  when: not (sysmon_svc.exists | default(false))
+
+- name: "Mettre à jour la configuration Sysmon si déjà installé"
+  ansible.windows.win_command: >-
+    C:\\lab\\sysmon\\Sysmon64.exe -c C:\\lab\\sysmon\\sysmonconfig.xml
+  when: sysmon_svc.exists | default(false)
+
+# --- 4. Jonction au domaine lab.local ---------------------------------------
+- name: "Joindre WS01 au domaine {{ lab_domain }}"
+  microsoft.ad.membership:
+    dns_domain_name: "{{ lab_domain }}"
+    domain_admin_user: "{{ lab_domain_netbios }}\\vagrant"
+    domain_admin_password: "{{ vault_domain_admin_password | default('Lab-Admin-2026!') }}"
+    # Place le compte ordinateur dans l'OU Workstations.
+    domain_ou_path: "OU=Workstations,OU=LAB,DC=lab,DC=local"
+    state: domain
+    reboot: true
+  register: domain_join
+  # Le compte "vagrant" du DC est admin du domaine (créé lors de la promotion).

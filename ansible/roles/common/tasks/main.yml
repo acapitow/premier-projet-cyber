@@ -1,0 +1,28 @@
+---
+# Rôle common — préparation de base des hôtes Linux.
+
+- name: "Mettre à jour le cache APT"
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  changed_when: false
+
+- name: "Installer les paquets de base"
+  ansible.builtin.apt:
+    name: "{{ common_base_packages }}"
+    state: present
+
+# En profil léger, ATTACK01 (Kali) n'existe pas : on installe nmap/hydra sur
+# SIEM01 pour pouvoir lancer les scénarios depuis le SIEM.
+- name: "Installer les outils de scénario sur SIEM01 (profil léger)"
+  ansible.builtin.apt:
+    name: "{{ scenario_tools }}"
+    state: present
+  when:
+    - lab_profile | default('full') == 'light'
+    - "'siem' in group_names"
+
+- name: "Fixer le fuseau horaire (cohérence des timestamps de logs)"
+  community.general.timezone:
+    name: "Europe/Paris"
+  notify: []

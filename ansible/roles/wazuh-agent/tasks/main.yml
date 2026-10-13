@@ -1,0 +1,16 @@
+---
+# =============================================================================
+# Rôle wazuh-agent — installe et enrôle l'agent Wazuh.
+# Branche selon l'OS : Debian/Ubuntu (SRV01) ou Windows (DC01, WS01).
+# L'enrôlement pointe vers SIEM01 ({{ wazuh_manager_ip }}).
+# =============================================================================
+
+# ----------------------------- LINUX ----------------------------------------
+- name: "Inclure l'installation Linux"
+  ansible.builtin.include_tasks: linux.yml
+  when: ansible_os_family in ['Debian', 'RedHat']
+
+# ----------------------------- WINDOWS --------------------------------------
+- name: "Inclure l'installation Windows"
+  ansible.builtin.include_tasks: windows.yml
+  when: ansible_os_family == 'Windows'

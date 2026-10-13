@@ -1,0 +1,55 @@
+<!--
+  ossec.conf — agent Wazuh Windows (SOC Home Lab)
+  Déployé par Ansible. Ajoute les canaux Sysmon et PowerShell nécessaires aux
+  détections, en plus des journaux Security/System/Application.
+-->
+<ossec_config>
+  <client>
+    <server>
+      <address>{{ wazuh_manager_ip }}</address>
+      <port>1514</port>
+      <protocol>tcp</protocol>
+    </server>
+    <enrollment>
+      <enabled>yes</enabled>
+      <manager_address>{{ wazuh_manager_ip }}</manager_address>
+      <agent_name>{{ inventory_hostname }}</agent_name>
+    </enrollment>
+    <crypto_method>aes</crypto_method>
+    <notify_time>10</notify_time>
+    <time-reconnect>60</time-reconnect>
+  </client>
+
+  <!-- Journaux Windows classiques -->
+  <localfile>
+    <location>Security</location>
+    <log_format>eventchannel</log_format>
+  </localfile>
+  <localfile>
+    <location>System</location>
+    <log_format>eventchannel</log_format>
+  </localfile>
+  <localfile>
+    <location>Application</location>
+    <log_format>eventchannel</log_format>
+  </localfile>
+
+  <!-- Sysmon (création de processus, connexions réseau, etc.) -->
+  <localfile>
+    <location>Microsoft-Windows-Sysmon/Operational</location>
+    <log_format>eventchannel</log_format>
+  </localfile>
+
+  <!-- PowerShell Script Block Logging (EID 4104) -->
+  <localfile>
+    <location>Microsoft-Windows-PowerShell/Operational</location>
+    <log_format>eventchannel</log_format>
+  </localfile>
+
+  <!-- Surveillance d'intégrité minimale -->
+  <syscheck>
+    <disabled>no</disabled>
+    <frequency>43200</frequency>
+    <directories check_all="yes" realtime="yes">C:\Windows\System32\drivers\etc</directories>
+  </syscheck>
+</ossec_config>

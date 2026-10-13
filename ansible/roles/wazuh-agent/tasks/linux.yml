@@ -1,0 +1,67 @@
+---
+# Installation de l'agent Wazuh sur Debian/Ubuntu (SRV01).
+
+- name: "Installer les prérequis APT (clé GPG)"
+  ansible.builtin.apt:
+    name: [gnupg, apt-transport-https]
+    state: present
+    update_cache: true
+
+- name: "Ajouter la clé GPG du dépôt Wazuh"
+  ansible.builtin.get_url:
+    url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+    dest: /usr/share/keyrings/wazuh.gpg.key
+    mode: "0644"
+
+- name: "Convertir la clé en keyring"
+  ansible.builtin.shell: |
+    set -o pipefail
+    gpg --no-default-keyring --keyring /usr/share/keyrings/wazuh.gpg \
+        --import /usr/share/keyrings/wazuh.gpg.key
+  args:
+    executable: /bin/bash
+    creates: /usr/share/keyrings/wazuh.gpg
+
+- name: "Ajouter le dépôt APT Wazuh"
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main"
+    filename: wazuh
+    state: present
+
+- name: "Installer l'agent Wazuh (enrôlement auto via WAZUH_MANAGER)"
+  ansible.builtin.apt:
+    name: wazuh-agent
+    state: present
+    update_cache: true
+  environment:
+    WAZUH_MANAGER: "{{ wazuh_manager_ip }}"
+    WAZUH_AGENT_NAME: "{{ inventory_hostname }}"
+
+- name: "Fixer l'adresse du manager dans ossec.conf"
+  ansible.builtin.replace:
+    path: /var/ossec/etc/ossec.conf
+    regexp: '<address>.*</address>'
+    replace: "<address>{{ wazuh_manager_ip }}</address>"
+
+# Collecte des journaux utiles aux scénarios (auth.log déjà présent par défaut ;
+# on ajoute explicitement Nginx pour enrichir le scénario Nmap / web).
+- name: "Ajouter la collecte des logs Nginx"
+  ansible.builtin.blockinfile:
+    path: /var/ossec/etc/ossec.conf
+    marker: "<!-- {mark} SOC-LAB nginx localfile -->"
+    insertbefore: "</ossec_config>"
+    block: |
+      <localfile>
+        <log_format>syslog</log_format>
+        <location>/var/log/nginx/access.log</location>
+      </localfile>
+      <localfile>
+        <log_format>syslog</log_format>
+        <location>/var/log/nginx/error.log</location>
+      </localfile>
+
+- name: "Activer et (re)démarrer l'agent"
+  ansible.builtin.service:
+    name: wazuh-agent
+    state: restarted
+    enabled: true

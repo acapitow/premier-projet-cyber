@@ -1,0 +1,13 @@
+# Configuration SSH du SOC Home Lab (déployée par Ansible) — SRV01
+# NB : volontairement permissive (auth par mot de passe) pour permettre le
+# scénario de brute force. LogLevel VERBOSE enrichit auth.log pour la détection.
+
+PasswordAuthentication yes
+PermitRootLogin no
+# VERBOSE journalise les empreintes de clés et facilite l'analyse des échecs.
+LogLevel VERBOSE
+# Valeurs par défaut conservées volontairement hautes pour NE PAS bloquer le labo :
+MaxAuthTries 6
+LoginGraceTime 30
+# Bannière neutre
+Banner none

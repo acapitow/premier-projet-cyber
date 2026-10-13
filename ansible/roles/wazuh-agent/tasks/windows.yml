@@ -1,0 +1,39 @@
+---
+# Installation de l'agent Wazuh sur Windows (DC01, WS01).
+
+- name: "Créer C:\\lab s'il n'existe pas"
+  ansible.windows.win_file:
+    path: 'C:\\lab'
+    state: directory
+
+- name: "Vérifier si l'agent Wazuh est déjà installé"
+  ansible.windows.win_service_info:
+    name: WazuhSvc
+  register: wazuh_agent_svc
+  failed_when: false
+
+- name: "Télécharger le MSI de l'agent Wazuh"
+  ansible.windows.win_get_url:
+    url: "https://packages.wazuh.com/4.x/windows/wazuh-agent-{{ wazuh_version }}.0-1.msi"
+    dest: 'C:\\lab\\wazuh-agent.msi'
+  when: not (wazuh_agent_svc.exists | default(false))
+
+- name: "Installer l'agent Wazuh (enrôlement vers le manager)"
+  ansible.windows.win_package:
+    path: 'C:\\lab\\wazuh-agent.msi'
+    state: present
+    arguments: "WAZUH_MANAGER={{ wazuh_manager_ip }} WAZUH_AGENT_NAME={{ inventory_hostname }}"
+  when: not (wazuh_agent_svc.exists | default(false))
+
+# Déploie un ossec.conf incluant les canaux Sysmon et PowerShell (absents par défaut).
+- name: "Déployer la configuration de l'agent (canaux Sysmon + PowerShell)"
+  ansible.windows.win_template:
+    src: ossec-windows.conf.j2
+    dest: 'C:\\Program Files (x86)\\ossec-agent\\ossec.conf'
+  notify: Redémarrer l'agent Windows
+
+- name: "Démarrer le service de l'agent"
+  ansible.windows.win_service:
+    name: WazuhSvc
+    state: started
+    start_mode: auto

@@ -1,0 +1,111 @@
+---
+# =============================================================================
+# Rôle dc01-domain-controller
+# Promeut DC01 en contrôleur du domaine lab.local, crée OU/groupes/utilisateurs
+# fictifs et active la politique d'audit AVANCÉE (indispensable aux détections).
+# Collections : ansible.windows, microsoft.ad
+# =============================================================================
+
+# --- 1. Nommage + DNS -------------------------------------------------------
+- name: "Renommer l'ordinateur en DC01"
+  ansible.windows.win_hostname:
+    name: DC01
+  register: rename_dc
+
+- name: "Redémarrer après renommage si nécessaire"
+  ansible.windows.win_reboot:
+  when: rename_dc.reboot_required
+
+# --- 2. Installer le rôle AD DS ---------------------------------------------
+- name: "Installer la fonctionnalité AD-Domain-Services (+ outils)"
+  ansible.windows.win_feature:
+    name:
+      - AD-Domain-Services
+      - RSAT-AD-PowerShell
+      - RSAT-AD-AdminCenter
+    include_management_tools: true
+    state: present
+  register: adds_feature
+
+# --- 3. Créer la forêt / promouvoir en DC -----------------------------------
+- name: "Créer la forêt {{ lab_domain }} et promouvoir DC01"
+  microsoft.ad.domain:
+    dns_domain_name: "{{ lab_domain }}"
+    domain_netbios_name: "{{ lab_domain_netbios }}"
+    safe_mode_password: "{{ vault_safe_mode_password | default('Lab-DSRM-2026!') }}"
+    reboot: true   # redémarre automatiquement puis attend que le DC soit prêt
+  register: domain_promo
+
+# Après promotion, le DC est son propre DNS.
+- name: "Pointer le DNS client vers lui-même (127.0.0.1)"
+  ansible.windows.win_dns_client:
+    adapter_names: "*"
+    dns_servers:
+      - 127.0.0.1
+
+# --- 4. Unités d'organisation (OU) ------------------------------------------
+- name: "Créer l'OU racine LAB"
+  microsoft.ad.ou:
+    name: LAB
+    path: "DC=lab,DC=local"
+    state: present
+
+- name: "Créer les sous-OU"
+  microsoft.ad.ou:
+    name: "{{ item }}"
+    path: "OU=LAB,DC=lab,DC=local"
+    state: present
+  loop:
+    - Users
+    - Services
+    - Workstations
+    - Servers
+
+# --- 5. Groupes de sécurité fictifs -----------------------------------------
+- name: "Créer les groupes métier"
+  microsoft.ad.group:
+    name: "{{ item }}"
+    scope: global
+    path: "OU=Users,OU=LAB,DC=lab,DC=local"
+    state: present
+  loop:
+    - Comptabilite
+    - RH
+    - Services
+
+# --- 6. Utilisateurs fictifs (cibles du password spraying) ------------------
+# Les valeurs par défaut permettent au labo de tourner même sans vault.yml.
+- name: "Créer les utilisateurs du domaine"
+  microsoft.ad.user:
+    name: "{{ item.sam }}"
+    firstname: "{{ item.name.split(' ')[0] }}"
+    surname: "{{ item.name.split(' ')[1] | default('') }}"
+    password: "{{ item.password }}"
+    path: "OU={{ item.ou }},OU=LAB,DC=lab,DC=local"
+    groups:
+      set: "{{ item.groups }}"
+    state: present
+    enabled: true
+    password_never_expires: true
+  loop: "{{ vault_domain_users | default(default_domain_users) }}"
+  loop_control:
+    label: "{{ item.sam }}"
+  no_log: true
+
+# --- 7. Politique d'audit AVANCÉE -------------------------------------------
+# On déploie et on exécute un script PowerShell qui active les sous-catégories
+# d'audit nécessaires aux Event IDs 4624/4625/4768/4771/4740, etc.
+- name: "Déployer le script de configuration de l'audit avancé"
+  ansible.windows.win_copy:
+    src: configure-audit-policy.ps1
+    dest: 'C:\\lab\\configure-audit-policy.ps1'
+
+- name: "Activer la politique d'audit avancée"
+  ansible.windows.win_powershell:
+    script: '& C:\\lab\\configure-audit-policy.ps1'
+  register: audit_cfg
+  changed_when: true
+
+- name: "Afficher le récapitulatif d'audit"
+  ansible.builtin.debug:
+    var: audit_cfg.output
