@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ===========================================================================
+  SOC Home Lab — Configuration Sysmon
+  Auteur : André Capito (@acapitow)
+
+  Inspirée de la configuration de référence SwiftOnSecurity/sysmon-config
+  (https://github.com/SwiftOnSecurity/sysmon-config) et des bonnes pratiques
+  d'Olaf Hartong (sysmon-modular). Adaptée pour un LABO : la journalisation
+  réseau (EventID 3) est volontairement LARGE afin que le scénario de scan
+  (Nmap / T1046) soit bien visible. En production, on filtrerait le bruit réseau.
+
+  Déployée par Ansible : Sysmon64.exe -accepteula -i sysmonconfig.xml
+  ===========================================================================
+-->
+<Sysmon schemaversion="4.90">
+  <HashAlgorithms>SHA256</HashAlgorithms>
+  <CheckRevocation>false</CheckRevocation>
+
+  <EventFiltering>
+
+    <!-- EID 1 : Création de processus (inclut la ligne de commande). -->
+    <RuleGroup name="ProcessCreate" groupRelation="or">
+      <ProcessCreate onmatch="exclude">
+        <!-- Réduire un peu le bruit système courant -->
+        <Image condition="is">C:\Windows\System32\SearchIndexer.exe</Image>
+        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!-- EID 2 : Horodatage de fichier modifié (anti-forensics). -->
+    <RuleGroup name="FileCreateTime" groupRelation="or">
+      <FileCreateTime onmatch="exclude" />
+    </RuleGroup>
+
+    <!-- EID 3 : Connexion réseau. LARGE pour le scénario de scan (T1046).
+         onmatch="exclude" sans exclusion => on journalise TOUTES les connexions. -->
+    <RuleGroup name="NetworkConnect" groupRelation="or">
+      <NetworkConnect onmatch="exclude" />
+    </RuleGroup>
+
+    <!-- EID 5 : Fin de processus. -->
+    <RuleGroup name="ProcessTerminate" groupRelation="or">
+      <ProcessTerminate onmatch="exclude" />
+    </RuleGroup>
+
+    <!-- EID 6 : Chargement de pilote. -->
+    <RuleGroup name="DriverLoad" groupRelation="or">
+      <DriverLoad onmatch="exclude">
+        <Signature condition="contains">Microsoft</Signature>
+        <Signature condition="contains">Windows</Signature>
+      </DriverLoad>
+    </RuleGroup>
+
+    <!-- EID 7 : Chargement d'image/DLL — ciblé (sinon très verbeux). -->
+    <RuleGroup name="ImageLoad" groupRelation="or">
+      <ImageLoad onmatch="include">
+        <!-- DLL souvent abusées pour l'exécution / le contournement -->
+        <ImageLoaded condition="contains">\Temp\</ImageLoaded>
+        <ImageLoaded condition="end with">\vaultcli.dll</ImageLoaded>
+        <ImageLoaded condition="end with">\wlanapi.dll</ImageLoaded>
+      </ImageLoad>
+    </RuleGroup>
+
+    <!-- EID 8 : CreateRemoteThread (injection). -->
+    <RuleGroup name="CreateRemoteThread" groupRelation="or">
+      <CreateRemoteThread onmatch="include">
+        <TargetImage condition="end with">lsass.exe</TargetImage>
+        <SourceImage condition="contains">\Temp\</SourceImage>
+      </CreateRemoteThread>
+    </RuleGroup>
+
+    <!-- EID 10 : Accès à un processus — surveiller l'accès à LSASS (T1003.001). -->
+    <RuleGroup name="ProcessAccess" groupRelation="or">
+      <ProcessAccess onmatch="include">
+        <TargetImage condition="end with">\lsass.exe</TargetImage>
+      </ProcessAccess>
+    </RuleGroup>
+
+    <!-- EID 11 : Création de fichier — zones sensibles. -->
+    <RuleGroup name="FileCreate" groupRelation="or">
+      <FileCreate onmatch="include">
+        <TargetFilename condition="contains">\Temp\</TargetFilename>
+        <TargetFilename condition="contains">\Startup\</TargetFilename>
+        <TargetFilename condition="end with">.ps1</TargetFilename>
+        <TargetFilename condition="end with">.bat</TargetFilename>
+      </FileCreate>
+    </RuleGroup>
+
+    <!-- EID 12/13/14 : Registre — clés de persistance courantes. -->
+    <RuleGroup name="RegistryEvent" groupRelation="or">
+      <RegistryEvent onmatch="include">
+        <TargetObject condition="contains">\CurrentVersion\Run</TargetObject>
+        <TargetObject condition="contains">\Services\</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+
+    <!-- EID 22 : Requête DNS. -->
+    <RuleGroup name="DnsQuery" groupRelation="or">
+      <DnsQuery onmatch="exclude">
+        <QueryName condition="end with">.microsoft.com</QueryName>
+        <QueryName condition="end with">.windows.com</QueryName>
+      </DnsQuery>
+    </RuleGroup>
+
+    <!-- EID 19/20/21 : Événements WMI (persistance). -->
+    <RuleGroup name="WmiEvent" groupRelation="or">
+      <WmiEvent onmatch="exclude" />
+    </RuleGroup>
+
+  </EventFiltering>
+</Sysmon>

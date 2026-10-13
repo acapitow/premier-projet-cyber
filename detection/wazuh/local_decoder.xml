@@ -1,0 +1,30 @@
+<!--
+  ===========================================================================
+  SOC Home Lab — Décodeurs Wazuh personnalisés
+  Auteur : André Capito (@acapitow)
+
+  Pour les 3 scénarios, les décodeurs NATIFS de Wazuh suffisent :
+    - sshd            : décode /var/log/auth.log (Failed/Accepted password)
+    - windows_eventchannel : décode les événements Windows/Sysmon (champs win.*)
+    - nginx           : décode les logs d'accès/erreur Nginx
+
+  Ce fichier est fourni pour l'extensibilité (pipeline de déploiement) et montre
+  comment on AJOUTERAIT un décodeur maison si un futur scénario le nécessitait.
+  L'exemple ci-dessous est commenté : décommentez et adaptez au besoin.
+  ===========================================================================
+-->
+
+<!--
+  Exemple : décoder une bannière applicative maison « LABAPP » du type :
+    LABAPP: user=bob action=login result=fail srcip=10.20.0.50
+
+<decoder name="labapp">
+  <prematch>^LABAPP: </prematch>
+</decoder>
+
+<decoder name="labapp-fields">
+  <parent>labapp</parent>
+  <regex>user=(\S+) action=(\S+) result=(\S+) srcip=(\d+.\d+.\d+.\d+)</regex>
+  <order>dstuser,action,result,srcip</order>
+</decoder>
+-->

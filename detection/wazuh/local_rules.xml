@@ -1,0 +1,126 @@
+<!--
+  ===========================================================================
+  SOC Home Lab — Règles Wazuh personnalisées
+  Auteur : André Capito (@acapitow)
+
+  Plage d'IDs : 100100+ (réservée aux règles locales par la convention Wazuh).
+  Ces règles s'APPUIENT sur les règles natives de Wazuh (SSH 57xx, Windows 60xxx,
+  Sysmon 616xx). Les SID parents sont ceux du ruleset Wazuh 4.x ; vérifiez-les
+  avec `wazuh-logtest` si votre version diffère.
+  ===========================================================================
+-->
+
+<!-- ======================= Scénario 01 : SSH brute force (T1110.001) ====== -->
+<group name="soc_lab,ssh,authentication,">
+
+  <!-- Brique : un échec SSH (s'appuie sur les règles natives 5710/5716). -->
+  <rule id="100100" level="5">
+    <if_sid>5710,5716,5760</if_sid>
+    <description>SOC-LAB: Échec d'authentification SSH sur $(dstuser) depuis $(srcip)</description>
+    <mitre>
+      <id>T1110.001</id>
+    </mitre>
+    <group>ssh_failed,</group>
+  </rule>
+
+  <!-- Corrélation : >= 8 échecs depuis la même IP en 60 s => brute force. -->
+  <rule id="100101" level="10" frequency="8" timeframe="60">
+    <if_matched_sid>100100</if_matched_sid>
+    <same_source_ip />
+    <description>SOC-LAB: Brute force SSH détecté — 8+ échecs/60s depuis $(srcip)</description>
+    <mitre>
+      <id>T1110.001</id>
+    </mitre>
+    <group>ssh_bruteforce,attack,</group>
+  </rule>
+
+  <!-- Escalade critique : connexion RÉUSSIE après un brute force (compromission). -->
+  <rule id="100102" level="13">
+    <if_sid>5715</if_sid>
+    <if_matched_sid>100101</if_matched_sid>
+    <same_source_ip />
+    <description>SOC-LAB: Connexion SSH réussie APRÈS brute force depuis $(srcip) — compromission probable de $(dstuser)</description>
+    <mitre>
+      <id>T1110.001</id>
+    </mitre>
+    <group>ssh_bruteforce,compromise,attack,</group>
+  </rule>
+
+</group>
+
+<!-- ================== Scénario 02 : Password spraying AD (T1110.003) ====== -->
+<group name="soc_lab,windows,authentication,">
+
+  <!-- Brique : échec d'ouverture de session Windows 4625 (règle native 60122). -->
+  <rule id="100200" level="4">
+    <if_sid>60122</if_sid>
+    <description>SOC-LAB: Échec d'ouverture de session (4625) pour $(win.eventdata.targetUserName) depuis $(win.eventdata.ipAddress)</description>
+    <mitre>
+      <id>T1110.003</id>
+    </mitre>
+    <group>win_logon_failed,</group>
+  </rule>
+
+  <!-- Corrélation spraying : même IP source, 5 comptes DIFFÉRENTS en 120 s. -->
+  <rule id="100201" level="12" frequency="5" timeframe="120">
+    <if_matched_sid>100200</if_matched_sid>
+    <same_field>win.eventdata.ipAddress</same_field>
+    <different_field>win.eventdata.targetUserName</different_field>
+    <description>SOC-LAB: Password spraying AD — 5+ comptes visés depuis $(win.eventdata.ipAddress)</description>
+    <mitre>
+      <id>T1110.003</id>
+    </mitre>
+    <group>password_spraying,attack,</group>
+  </rule>
+
+  <!-- Variante Kerberos : échec de pré-authentification (4771). Parent générique
+       Windows eventchannel ; ajuster l'if_sid si besoin (voir commentaire d'en-tête). -->
+  <rule id="100202" level="4">
+    <if_group>windows</if_group>
+    <field name="win.system.eventID">^4771$</field>
+    <description>SOC-LAB: Échec de pré-authentification Kerberos (4771) pour $(win.eventdata.targetUserName)</description>
+    <mitre>
+      <id>T1110.003</id>
+    </mitre>
+    <group>win_kerberos_preauth_failed,</group>
+  </rule>
+
+  <rule id="100203" level="12" frequency="5" timeframe="120">
+    <if_matched_sid>100202</if_matched_sid>
+    <same_field>win.eventdata.ipAddress</same_field>
+    <different_field>win.eventdata.targetUserName</different_field>
+    <description>SOC-LAB: Password spraying Kerberos — 5+ comptes depuis $(win.eventdata.ipAddress)</description>
+    <mitre>
+      <id>T1110.003</id>
+    </mitre>
+    <group>password_spraying,attack,</group>
+  </rule>
+
+</group>
+
+<!-- ===================== Scénario 03 : Scan réseau Nmap (T1046) =========== -->
+<group name="soc_lab,sysmon,discovery,">
+
+  <!-- Brique : connexion réseau Sysmon (EventID 3), groupe natif sysmon_event3. -->
+  <rule id="100300" level="2">
+    <if_group>sysmon_event3</if_group>
+    <description>SOC-LAB: Connexion réseau Sysmon $(win.eventdata.sourceIp) -> $(win.eventdata.destinationIp):$(win.eventdata.destinationPort)</description>
+    <mitre>
+      <id>T1046</id>
+    </mitre>
+    <group>sysmon_netconn,</group>
+  </rule>
+
+  <!-- Corrélation scan : même source, 20 ports de destination DIFFÉRENTS en 60 s. -->
+  <rule id="100301" level="10" frequency="20" timeframe="60">
+    <if_matched_sid>100300</if_matched_sid>
+    <same_field>win.eventdata.sourceIp</same_field>
+    <different_field>win.eventdata.destinationPort</different_field>
+    <description>SOC-LAB: Scan réseau (Nmap) détecté — 20+ ports balayés depuis $(win.eventdata.sourceIp)</description>
+    <mitre>
+      <id>T1046</id>
+    </mitre>
+    <group>network_scan,attack,</group>
+  </rule>
+
+</group>

@@ -1,0 +1,52 @@
+# =============================================================================
+# Scénario 03 — Network Service Discovery / Scan Nmap (MITRE ATT&CK T1046)
+# Format : SigmaHQ. Un scan = un même processus/hôte qui ouvre un grand nombre
+# de connexions vers des ports DISTINCTS en peu de temps (Sysmon EventID 3).
+# =============================================================================
+title: Connexion réseau Sysmon (EventID 3)
+name: sysmon_network_connection_lab
+id: 61572ec0-b4c5-4895-9b1b-899904b80608
+status: experimental
+description: Connexion réseau enregistrée par Sysmon — brique de détection de scan.
+references:
+    - https://attack.mitre.org/techniques/T1046/
+author: André Capito (@acapitow)
+date: 2026-10-13
+logsource:
+    product: windows
+    category: network_connection
+detection:
+    selection:
+        EventID: 3
+    # Un scan depuis un poste est souvent lancé via un outil (nmap) ou PowerShell.
+    # On ne filtre PAS sur l'image pour rester générique ; la corrélation suffit.
+    condition: selection
+falsepositives:
+    - Navigateur ou client de synchronisation ouvrant de nombreuses connexions
+    - Outil d'administration / supervision
+level: low
+tags:
+    - attack.discovery
+    - attack.t1046
+---
+# Corrélation : >= 20 ports de destination DISTINCTS depuis une même source en 1 min.
+title: Scan réseau (Nmap) détecté
+id: 3b7a1c28-0f55-4e3c-9d4b-7c2f8e0a5f03
+status: experimental
+description: >
+    Une même adresse/host source établit des connexions vers au moins 20 ports
+    distincts en 1 minute : signature d'un balayage de ports/services (T1046).
+correlation:
+    type: value_count
+    rules:
+        - sysmon_network_connection_lab
+    group-by:
+        - SourceIp
+    timespan: 1m
+    condition:
+        gte: 20
+        field: DestinationPort
+level: medium
+tags:
+    - attack.discovery
+    - attack.t1046

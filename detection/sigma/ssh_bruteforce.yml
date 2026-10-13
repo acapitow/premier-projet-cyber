@@ -1,0 +1,51 @@
+# =============================================================================
+# Scénario 01 — Brute Force SSH (MITRE ATT&CK T1110.001)
+# Format : SigmaHQ (https://github.com/SigmaHQ/sigma). Deux documents YAML :
+#   1) règle de base : un échec d'authentification SSH
+#   2) règle de corrélation : N échecs depuis la même source dans une fenêtre
+# =============================================================================
+title: Échec d'authentification SSH
+name: ssh_failed_login_lab
+id: 99972dbb-e0a6-4b20-8031-0e8288428ce7
+status: experimental
+description: Détecte un échec d'authentification SSH (brique de base du brute force).
+references:
+    - https://attack.mitre.org/techniques/T1110/001/
+author: André Capito (@acapitow)
+date: 2026-10-13
+logsource:
+    product: linux
+    service: sshd
+detection:
+    selection_failed:
+        - 'Failed password for'
+        - 'Failed password for invalid user'
+        - 'Invalid user'
+    condition: selection_failed
+falsepositives:
+    - Utilisateur légitime qui se trompe de mot de passe
+level: low
+tags:
+    - attack.credential-access
+    - attack.t1110.001
+---
+# Corrélation : brute force = beaucoup d'échecs depuis une même IP en peu de temps.
+title: Brute Force SSH détecté
+id: 7c4a9d2e-1b63-4f0a-9c21-2f5a0d6e1a01
+status: experimental
+description: >
+    Déclenche quand une même adresse source cumule au moins 8 échecs
+    d'authentification SSH en 60 secondes — signature d'un brute force (T1110.001).
+correlation:
+    type: event_count
+    rules:
+        - ssh_failed_login_lab
+    group-by:
+        - src_ip
+    timespan: 1m
+    condition:
+        gte: 8
+level: high
+tags:
+    - attack.credential-access
+    - attack.t1110.001
