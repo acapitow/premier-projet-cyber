@@ -1,0 +1,50 @@
+[
+  {
+    "timestamp": "2026-10-13T23:30:41.770+0000",
+    "rule": {
+      "id": "100301",
+      "level": 10,
+      "description": "SOC-LAB: Scan réseau (Nmap) détecté — 20+ ports balayés depuis 10.20.0.20",
+      "mitre": { "id": ["T1046"], "tactic": ["Discovery"] },
+      "groups": ["soc_lab", "sysmon", "network_scan", "attack"]
+    },
+    "agent": { "id": "003", "name": "ws01", "ip": "10.20.0.20" },
+    "data": {
+      "win": {
+        "system": { "eventID": "3", "channel": "Microsoft-Windows-Sysmon/Operational", "computer": "ws01.lab.local" },
+        "eventdata": {
+          "sourceIp": "10.20.0.20",
+          "destinationIp": "10.20.0.10",
+          "destinationPort": "445",
+          "image": "C:\\lab\\nmap\\nmap.exe",
+          "protocol": "tcp"
+        }
+      }
+    },
+    "location": "EventChannel"
+  },
+  {
+    "timestamp": "2026-10-13T23:30:40.112+0000",
+    "rule": {
+      "id": "100300",
+      "level": 2,
+      "description": "SOC-LAB: Connexion réseau Sysmon 10.20.0.20 -> 10.20.0.30:22",
+      "mitre": { "id": ["T1046"], "tactic": ["Discovery"] },
+      "groups": ["soc_lab", "sysmon", "sysmon_netconn"]
+    },
+    "agent": { "id": "003", "name": "ws01", "ip": "10.20.0.20" },
+    "data": {
+      "win": {
+        "system": { "eventID": "3", "channel": "Microsoft-Windows-Sysmon/Operational", "computer": "ws01.lab.local" },
+        "eventdata": {
+          "sourceIp": "10.20.0.20",
+          "destinationIp": "10.20.0.30",
+          "destinationPort": "22",
+          "image": "C:\\lab\\nmap\\nmap.exe",
+          "protocol": "tcp"
+        }
+      }
+    },
+    "location": "EventChannel"
+  }
+]

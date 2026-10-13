@@ -1,0 +1,30 @@
+[
+  {
+    "timestamp": "2026-10-13T22:40:04.512+0000",
+    "rule": {
+      "id": "100101",
+      "level": 10,
+      "description": "SOC-LAB: Brute force SSH détecté — 8+ échecs/60s depuis 10.20.0.50",
+      "mitre": { "id": ["T1110.001"], "tactic": ["Credential Access"] },
+      "groups": ["soc_lab", "ssh", "ssh_bruteforce", "attack"]
+    },
+    "agent": { "id": "002", "name": "srv01", "ip": "10.20.0.30" },
+    "data": { "srcip": "10.20.0.50", "dstuser": "labadmin" },
+    "location": "/var/log/auth.log",
+    "full_log": "Oct 13 22:40:04 srv01 sshd[2351]: Failed password for labadmin from 10.20.0.50 port 51012 ssh2"
+  },
+  {
+    "timestamp": "2026-10-13T22:40:05.903+0000",
+    "rule": {
+      "id": "100102",
+      "level": 13,
+      "description": "SOC-LAB: Connexion SSH réussie APRÈS brute force depuis 10.20.0.50 — compromission probable de labadmin",
+      "mitre": { "id": ["T1110.001"], "tactic": ["Credential Access"] },
+      "groups": ["soc_lab", "ssh", "ssh_bruteforce", "compromise", "attack"]
+    },
+    "agent": { "id": "002", "name": "srv01", "ip": "10.20.0.30" },
+    "data": { "srcip": "10.20.0.50", "dstuser": "labadmin" },
+    "location": "/var/log/auth.log",
+    "full_log": "Oct 13 22:40:05 srv01 sshd[2399]: Accepted password for labadmin from 10.20.0.50 port 51090 ssh2"
+  }
+]
