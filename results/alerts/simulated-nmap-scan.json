@@ -1,0 +1,22 @@
+[
+  {
+    "_note": "SIMULATION hors-ligne (simulate_detection.py) — pas un vrai SIEM",
+    "rule": {
+      "id": "100301",
+      "level": 10,
+      "description": "SOC-LAB: Scan réseau (Nmap) détecté — 20+ ports balayés depuis 10.20.0.20",
+      "mitre": {
+        "id": [
+          "T1046"
+        ]
+      }
+    },
+    "agent": {
+      "name": "ws01"
+    },
+    "data": {
+      "sourceIp": "10.20.0.20",
+      "ports_distincts": 20
+    }
+  }
+]

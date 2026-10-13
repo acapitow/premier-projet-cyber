@@ -157,8 +157,14 @@ Lancer **tous** les scénarios et collecter les alertes :
 ```bash
 cd scenarios
 ./run_all_scenarios.sh            # mode --check par défaut (sûr, ne lance rien de réel)
-./run_all_scenarios.sh --execute  # lance réellement les attaques (labo uniquement)
+./run_all_scenarios.sh --execute  # lance réellement les attaques (labo déployé uniquement)
+./run_all_scenarios.sh --simulate # détection HORS-LIGNE : prouve que les règles se déclenchent, SANS VM
 ```
+
+> 💡 **Sans infrastructure ?** `--simulate` (ou `python3 scripts/simulate_detection.py`)
+> rejoue une trace d'attaque réaliste et applique **la même logique de corrélation** que
+> les règles Wazuh/Sigma — avec **Python seul**, sans VirtualBox ni SIEM. Pratique sous
+> WSL ou pour une démo rapide. Les alertes produites vont dans `results/alerts/simulated-*.json`.
 
 Couverture MITRE complète : [`docs/mitre-attack-matrix.md`](docs/mitre-attack-matrix.md).
 

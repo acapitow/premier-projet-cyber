@@ -29,8 +29,11 @@ jobs:
       - name: shellcheck (scripts bash)
         run: shellcheck -S warning scenarios/lib/lab_guard.sh scenarios/run_all_scenarios.sh scenarios/*/attack.sh scripts/fetch-references.sh
 
-      - name: Compilation du script Python
-        run: python -m py_compile scripts/export_alerts.py
+      - name: Compilation des scripts Python
+        run: python -m py_compile scripts/export_alerts.py scripts/simulate_detection.py
+
+      - name: Test fonctionnel du moteur de détection hors-ligne
+        run: python scripts/simulate_detection.py --quiet
 
       - name: Validation XML (règles Wazuh + Sysmon) et structure Sigma
         run: python .github/workflows/validate_detection.py

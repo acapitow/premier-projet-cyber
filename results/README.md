@@ -11,10 +11,26 @@
 
 | Chemin | Rôle |
 |--------|------|
-| `alerts/sample-ssh-bruteforce.json` | Alertes de référence du scénario 01 (format `export_alerts.py`) |
-| `alerts/sample-password-spraying.json` | Alertes de référence du scénario 02 |
-| `alerts/sample-nmap-scan.json` | Alertes de référence du scénario 03 |
+| `alerts/sample-*.json` | Alertes de **référence** (forme attendue depuis un vrai Wazuh) |
+| `alerts/simulated-*.json` | Alertes **réellement produites** par le moteur hors-ligne `simulate_detection.py` |
 | `img/` | Emplacement des captures du dashboard Wazuh |
+
+### `sample-*` vs `simulated-*` : la différence (transparence)
+
+- **`sample-*.json`** = exemples écrits à la main montrant le format exact d'une alerte
+  Wazuh (utile pour lire le projet sans rien lancer).
+- **`simulated-*.json`** = sortie **générée par du code exécuté** : le moteur
+  [`scripts/simulate_detection.py`](../scripts/simulate_detection.py) rejoue une trace
+  d'attaque et applique la **même logique de corrélation** que les règles Wazuh/Sigma.
+  Ce n'est pas un vrai SIEM, mais c'est une **preuve reproductible** que les seuils de
+  détection fonctionnent — sur n'importe quelle machine avec Python 3 :
+
+  ```bash
+  python3 scripts/simulate_detection.py --out-dir results/alerts
+  # ou : cd scenarios && ./run_all_scenarios.sh --simulate
+  ```
+
+  Pour une preuve « SIEM réel », déployez le labo puis utilisez `export_alerts.py` (ci-dessous).
 
 > `.gitignore` conserve les fichiers `sample-*.json` mais **ignore** les exports réels
 > (`run-*.json`, etc.) pour éviter de polluer le dépôt avec de gros volumes.

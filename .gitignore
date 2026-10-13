@@ -41,6 +41,7 @@ results/alerts/*.json
 results/alerts/*.ndjson
 !results/alerts/.gitkeep
 !results/alerts/sample-*.json
+!results/alerts/simulated-*.json
 
 # Editor / OS noise
 .idea/

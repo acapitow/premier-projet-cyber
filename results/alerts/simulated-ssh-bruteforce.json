@@ -1,0 +1,43 @@
+[
+  {
+    "_note": "SIMULATION hors-ligne (simulate_detection.py) — pas un vrai SIEM",
+    "rule": {
+      "id": "100101",
+      "level": 10,
+      "description": "SOC-LAB: Brute force SSH détecté — 8 échecs/60s depuis 10.20.0.50",
+      "mitre": {
+        "id": [
+          "T1110.001"
+        ]
+      }
+    },
+    "agent": {
+      "name": "srv01"
+    },
+    "data": {
+      "srcip": "10.20.0.50",
+      "dstuser": "labadmin",
+      "echecs_fenetre": 8
+    }
+  },
+  {
+    "_note": "SIMULATION hors-ligne (simulate_detection.py) — pas un vrai SIEM",
+    "rule": {
+      "id": "100102",
+      "level": 13,
+      "description": "SOC-LAB: Connexion SSH réussie APRÈS brute force depuis 10.20.0.50 — compromission probable de labadmin",
+      "mitre": {
+        "id": [
+          "T1110.001"
+        ]
+      }
+    },
+    "agent": {
+      "name": "srv01"
+    },
+    "data": {
+      "srcip": "10.20.0.50",
+      "dstuser": "labadmin"
+    }
+  }
+]

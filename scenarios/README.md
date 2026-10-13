@@ -25,9 +25,17 @@ cd scenarios
 # Tout, pour de vrai (contre le labo isolé) :
 ./run_all_scenarios.sh --execute
 
+# Détection HORS-LIGNE (Python seul, aucune VM) — idéal sous WSL / pour une démo :
+./run_all_scenarios.sh --simulate
+
 # Un seul scénario :
 ./01-ssh-bruteforce/attack.sh --execute
 ```
+
+> **`--simulate`** appelle [`../scripts/simulate_detection.py`](../scripts/simulate_detection.py),
+> qui rejoue une trace d'attaque et applique la même logique de corrélation que les règles
+> Wazuh/Sigma, puis écrit les alertes dans `../results/alerts/simulated-*.json`. Aucune VM,
+> aucun SIEM, aucun outil d'attaque requis — seulement Python 3.
 
 ## D'où lancer les attaques ?
 
