@@ -1,0 +1,36 @@
+name: lint
+
+# Contrôles de qualité légers et fiables (pas de déploiement de VM en CI).
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer les outils de lint
+        run: |
+          python -m pip install --upgrade pip
+          pip install yamllint pyyaml
+          sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: yamllint (YAML Ansible + Sigma)
+        run: yamllint -c .yamllint ansible detection/sigma .yamllint
+
+      - name: shellcheck (scripts bash)
+        run: shellcheck -S warning scenarios/lib/lab_guard.sh scenarios/run_all_scenarios.sh scenarios/*/attack.sh scripts/fetch-references.sh
+
+      - name: Compilation du script Python
+        run: python -m py_compile scripts/export_alerts.py
+
+      - name: Validation XML (règles Wazuh + Sysmon) et structure Sigma
+        run: python .github/workflows/validate_detection.py

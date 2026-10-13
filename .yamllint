@@ -1,0 +1,23 @@
+# Configuration yamllint — volontairement souple pour le style Ansible.
+extends: default
+
+rules:
+  line-length: disable          # descriptions longues tolérées
+  truthy:
+    allowed-values: ["true", "false", "yes", "no"]   # Ansible utilise yes/no
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: disable
+  document-start: disable
+  braces:
+    max-spaces-inside: 1
+  # On autorise l'alignement des valeurs (plusieurs espaces après : et ,)
+  colons:
+    max-spaces-after: -1
+  commas:
+    max-spaces-after: -1
+  octal-values: disable
+
+ignore: |
+  references/
+  .vagrant/

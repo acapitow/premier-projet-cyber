@@ -12,6 +12,10 @@
 # À sourcer en tête de chaque script : source ../lib/lab_guard.sh
 # =============================================================================
 
+# Ce fichier est SOURCÉ : plusieurs variables (IP du labo, couleurs) sont
+# consommées par les scripts appelants, pas dans ce fichier — on neutralise
+# donc l'avertissement "variable inutilisée".
+# shellcheck disable=SC2034
 set -euo pipefail
 
 # --- Périmètre autorisé ------------------------------------------------------
