@@ -1,0 +1,7 @@
+# Comptes de domaine FICTIFS du labo (créés par ansible/roles/dc01-domain-controller).
+# Cibles du password spraying — scénario 02. Labo isolé uniquement.
+jdupont
+amartin
+pbernard
+svc_backup
+svc_sql
