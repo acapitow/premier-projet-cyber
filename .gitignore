@@ -1,0 +1,50 @@
+# ──────────────────────────────────────────────────────────────────────────
+# SOC Home Lab — .gitignore
+# ──────────────────────────────────────────────────────────────────────────
+
+# Reference repositories cloned locally (see scripts/fetch-references.sh).
+# They are large, have their own licenses, and must NOT be committed here.
+references/
+
+# Vagrant / VirtualBox runtime state
+.vagrant/
+*.box
+*.vbox
+*.vbox-prev
+*_logs/
+ubuntu-*-console.log
+
+# Ansible
+*.retry
+ansible/*.log
+ansible/collections/
+ansible/roles/external/
+
+# Secrets & generated credentials — never commit real secrets.
+# The lab uses throwaway credentials defined in ansible/group_vars/vault.yml.example
+*.vault
+vault.yml
+vault_pass.txt
+*.pem
+*.key
+!**/*.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+
+# Exported alerts can be large / noisy; keep a curated sample under results/ instead.
+results/alerts/*.json
+results/alerts/*.ndjson
+!results/alerts/.gitkeep
+!results/alerts/sample-*.json
+
+# Editor / OS noise
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
