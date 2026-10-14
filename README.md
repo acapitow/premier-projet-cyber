@@ -75,7 +75,7 @@ Réseau interne VirtualBox `soc-lab` — `10.20.0.0/24` — isolé d'Internet.
 
 ## 🧰 Prérequis (sur votre machine hôte)
 
-Claude Code **n'installe pas** ces outils pour vous — à installer une fois sur l'hôte :
+Ces outils ne sont **pas** installés automatiquement — installez-les une fois sur l'hôte :
 
 | Outil           | Rôle                                   | Lien |
 |-----------------|----------------------------------------|------|
